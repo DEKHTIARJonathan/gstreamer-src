@@ -1,0 +1,8 @@
+[package]
+name = "gstreamer-ffmpeg-src"
+version = "1.28.0-rc1"
+edition = "2021"
+license = "LGPL-2.1-or-later"
+description = "Pinned ffmpeg source payload for gstreamer-src"
+repository = "https://github.com/DEKHTIARJonathan/gstreamer-src"
+include = ["src", "native.tar.xz", "LICENSE.md"]
