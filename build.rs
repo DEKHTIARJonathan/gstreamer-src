@@ -330,20 +330,25 @@ fn main() {
     run(Command::new(&meson).arg("compile").arg("-C").arg(&build));
     run(Command::new(&meson).arg("install").arg("-C").arg(&build));
     if let Some(runtime) = compiler_runtime {
-        // Keep the compiler runtime discoverable when linking the static SDK.
-        let pc = prefix.join("lib/pkgconfig/gstreamer-1.0.pc");
-        let mut contents = fs::read_to_string(&pc).unwrap();
+        // Export dependencies otherwise supplied implicitly by Meson's MSVC
+        // linker defaults, so independent static consumers get the same link.
         let library = runtime.file_stem().unwrap().to_str().unwrap();
-        let argument = format!(" -l{library}");
-        if let Some(start) = contents.find("Libs.private:") {
-            let end = contents[start..]
-                .find('\n')
-                .map_or(contents.len(), |i| start + i);
-            contents.insert_str(end, &argument);
-        } else {
-            contents.push_str(&format!("\nLibs.private:{argument}\n"));
+        for (package, libraries) in [
+            ("gstreamer-1.0", format!(" -l{library}")),
+            ("glib-2.0", " -luser32 -lshell32 -ladvapi32 -lole32".into()),
+        ] {
+            let pc = prefix.join(format!("lib/pkgconfig/{package}.pc"));
+            let mut contents = fs::read_to_string(&pc).unwrap();
+            if let Some(start) = contents.find("Libs.private:") {
+                let end = contents[start..]
+                    .find('\n')
+                    .map_or(contents.len(), |i| start + i);
+                contents.insert_str(end, &libraries);
+            } else {
+                contents.push_str(&format!("\nLibs.private:{libraries}\n"));
+            }
+            fs::write(pc, contents).unwrap();
         }
-        fs::write(pc, contents).unwrap();
     }
     println!("cargo:rustc-env=GSTREAMER_SRC_PREFIX={}", prefix.display());
     println!("cargo:root={}", prefix.display());

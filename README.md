@@ -21,10 +21,9 @@ Prerequisites: Rust 1.98, Python 3.11+, Meson 1.9, Ninja, pkg-config, C/C++
 compiler, Flex/Bison, and CMake for AOM. x86 assembly requires NASM. On macOS,
 put Homebrew Bison >=2.4 before Apple's system Bison on PATH. macOS builds use
 the platform compiler and deployment target 15.0. Windows requires LLVM's
-`clang-cl` and compiler-rt with the MSVC SDK and CRT; it has not been validated
-on Windows. Linux graphics
-features require system GL/EGL, libdrm, libva and X11 development libraries and
-appropriate runtime drivers. Cross-target builds are rejected.
+`clang-cl` and compiler-rt with the MSVC SDK and CRT. Linux graphics features
+require system GL/EGL, libdrm, libva and X11 development libraries and appropriate
+runtime drivers. Cross-target builds are rejected.
 
 ```sh
 make setup
@@ -66,6 +65,9 @@ immediate dependents but does not replace the separate preparation step.
 
 Windows installations include LLVM's builtins library and its license; the
 installed pkg-config metadata carries that dependency for static consumers.
+It also supplies GLib's required Windows system libraries. For a static SDK,
+set `PKG_CONFIG_ALL_STATIC=1` when building the consumer and explicitly register
+the selected static plugins before constructing pipelines.
 Compiler capability checks reject ignored flags. With clang-cl on x64, this
 selects the portable audio resampler instead of incorrectly targeting SSE4.1;
 the optional ORC backend retains its own runtime CPU dispatch.
