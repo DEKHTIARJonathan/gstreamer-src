@@ -99,7 +99,19 @@ jobs:
       - if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1.13.0
       - if: runner.os == 'Windows'
-        run: choco install pkgconfiglite winflexbison nasm llvm ffmpeg -y
+        run: choco install pkgconfiglite nasm llvm ffmpeg -y
+      - name: Install pinned WinFlexBison
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'win_flex_bison-2.5.25.zip'
+          Invoke-WebRequest 'https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip' -OutFile $archive -MaximumRetryCount 3
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne '8d324b62be33604b2c45ad1dd34ab93d722534448f55a16ca7292de32b6ac135') {
+            throw 'WinFlexBison checksum mismatch'
+          }
+          $destination = Join-Path $env:RUNNER_TEMP 'winflexbison'
+          Expand-Archive $archive -DestinationPath $destination
+          Add-Content $env:GITHUB_PATH $destination
       - uses: actions/download-artifact@v8.0.2
         with:
           name: candidate

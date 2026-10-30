@@ -171,7 +171,7 @@ fn main() {
         // Its static dependency propagates FFI_STATIC_BUILD to GLib.
         setup.arg("-Dlibffi:default_library=static");
         // Upstream only supplies flex's --nounistd for the MSVC compiler ID.
-        setup.arg("-Dgstreamer:c_args=-DYY_NO_UNISTD_H");
+        setup.arg("-Dc_args=-DYY_NO_UNISTD_H");
     }
     let mut options = std::collections::BTreeMap::new();
     // Upstream couples the external scanner to its core tools option.
