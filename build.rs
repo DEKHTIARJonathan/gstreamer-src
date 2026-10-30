@@ -166,6 +166,13 @@ fn main() {
     } else {
         "-Ddefault_library=shared"
     });
+    if os == "windows" {
+        // libffi's shared DATA declarations are incompatible with clang-cl.
+        // Its static dependency propagates FFI_STATIC_BUILD to GLib.
+        setup.arg("-Dlibffi:default_library=static");
+        // Upstream only supplies flex's --nounistd for the MSVC compiler ID.
+        setup.arg("-Dgstreamer:c_args=-DYY_NO_UNISTD_H");
+    }
     let mut options = std::collections::BTreeMap::new();
     // Upstream couples the external scanner to its core tools option.
     if !enabled("static") {
@@ -258,16 +265,24 @@ fn main() {
         setup.arg("--cross-file").arg(machine);
     } else if use_sccache {
         // Leave CC/CXX unwrapped for CMake; wrap only Meson's compiler commands.
+        // Meson 1.9 discards its cache launcher for clang-cl. An absolute
+        // executable keeps sccache in the compiler command itself.
+        let wrapper = if os == "windows" {
+            let path = env::split_paths(&env::var_os("PATH").unwrap())
+                .map(|path| path.join("sccache.exe"))
+                .find(|path| path.is_file())
+                .expect("sccache.exe must be on PATH");
+            format!("\"{}\"", path.display())
+        } else {
+            "sccache".into()
+        };
         for (variable, default) in [
             ("CC", if os == "windows" { "cl" } else { "cc" }),
             ("CXX", if os == "windows" { "cl" } else { "c++" }),
         ] {
             let compiler = env::var(variable).unwrap_or_else(|_| default.into());
-            let command = if compiler == "sccache" || compiler.starts_with("sccache ") {
-                compiler
-            } else {
-                format!("sccache {compiler}")
-            };
+            let compiler = compiler.strip_prefix("sccache ").unwrap_or(&compiler);
+            let command = format!("{wrapper} {compiler}");
             setup.env(variable, command);
         }
     }
