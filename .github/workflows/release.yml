@@ -99,7 +99,7 @@ jobs:
       - if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1.13.0
       - if: runner.os == 'Windows'
-        run: choco install pkgconfiglite nasm llvm ffmpeg -y
+        run: choco install pkgconfiglite nasm ffmpeg -y
       - name: Install pinned WinFlexBison
         if: runner.os == 'Windows'
         shell: pwsh
@@ -133,7 +133,7 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then
             msvc_prefix=$(cygpath -u "$VCToolsInstallDir")
             export PATH="$msvc_prefix/bin/Hostx64/x64:$PATH"
-            export CC=clang-cl CXX=clang-cl
+            export CC=cl CXX=cl
           fi
           python scripts/test-package.py
       - name: Record Rust and native compiler cache statistics

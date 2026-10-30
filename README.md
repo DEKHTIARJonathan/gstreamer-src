@@ -20,8 +20,8 @@ by consumer builds.
 Prerequisites: Rust 1.98, Python 3.11+, Meson 1.9, Ninja, pkg-config, C/C++
 compiler, Flex/Bison, and CMake for AOM. x86 assembly requires NASM. On macOS,
 put Homebrew Bison >=2.4 before Apple's system Bison on PATH. macOS builds use
-the platform compiler and deployment target 15.0. Windows AV1 requires clang-cl
-with the MSVC SDK and CRT; it has not been validated on Windows. Linux graphics
+the platform compiler and deployment target 15.0. Windows uses MSVC with its
+conforming preprocessor, SDK and CRT; it has not been validated on Windows. Linux graphics
 features require system GL/EGL, libdrm, libva and X11 development libraries and
 appropriate runtime drivers. Cross-target builds are rejected.
 

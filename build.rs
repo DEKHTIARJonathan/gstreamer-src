@@ -167,11 +167,9 @@ fn main() {
         "-Ddefault_library=shared"
     });
     if os == "windows" {
-        // libffi's shared DATA declarations are incompatible with clang-cl.
-        // Its static dependency propagates FFI_STATIC_BUILD to GLib.
-        setup.arg("-Dlibffi:default_library=static");
-        // Upstream only supplies flex's --nounistd for the MSVC compiler ID.
-        setup.arg("-Dc_args=-DYY_NO_UNISTD_H");
+        // AOM's plugin caps contain preprocessor directives in macro arguments.
+        // Use MSVC's conforming preprocessor for the unmodified upstream source.
+        setup.args(["-Dc_args=/Zc:preprocessor", "-Dcpp_args=/Zc:preprocessor"]);
     }
     let mut options = std::collections::BTreeMap::new();
     // Upstream couples the external scanner to its core tools option.
