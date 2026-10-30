@@ -94,7 +94,7 @@ fn selected_plugins_and_codecs() {
         names.extend(["jpegenc", "jpegdec"]);
     }
     if has("libav") {
-        names.push("avdec_h265");
+        names.extend(["avdec_h265", "avdec_vp9"]);
     }
     if has("av1") {
         names.push("av1dec");
@@ -120,7 +120,13 @@ fn selected_plugins_and_codecs() {
                 .property("location", file.to_str().unwrap())
                 .build()
                 .unwrap();
-            let decoder = gst::ElementFactory::make("decodebin3").build().unwrap();
+            // Exercise the packaged FFmpeg decoder even on hosts that also
+            // provide hardware VP9 decoding.
+            let vp9 = file.file_stem().is_some_and(|name| name == "vp9");
+            let decoder =
+                gst::ElementFactory::make(if vp9 { "matroskademux" } else { "decodebin3" })
+                    .build()
+                    .unwrap();
             let convert = gst::ElementFactory::make("videoconvert").build().unwrap();
             let sink = gstreamer_app::AppSink::builder()
                 .sync(false)
@@ -136,7 +142,14 @@ fn selected_plugins_and_codecs() {
                 .unwrap();
             input.link(&decoder).unwrap();
             convert.link(&sink).unwrap();
-            let target = convert.static_pad("sink").unwrap();
+            let target = if vp9 {
+                let codec = gst::ElementFactory::make("avdec_vp9").build().unwrap();
+                pipeline.add(&codec).unwrap();
+                codec.link(&convert).unwrap();
+                codec.static_pad("sink").unwrap()
+            } else {
+                convert.static_pad("sink").unwrap()
+            };
             decoder.connect_pad_added(move |_, pad| {
                 if pad.name().starts_with("video_") && !target.is_linked() {
                     pad.link(&target).unwrap();

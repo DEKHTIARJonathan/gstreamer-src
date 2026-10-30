@@ -1,6 +1,6 @@
 [package]
 name = "gstreamer-codecs-src"
-version = "1.28.0-rc1"
+version = "1.28.0-rc2"
 edition = "2021"
 license = "LGPL-2.1-or-later"
 description = "Pinned codecs source payload for gstreamer-src"

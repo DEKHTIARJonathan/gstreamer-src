@@ -61,6 +61,8 @@ if 'playback' in features.split(',') and any(f in features.split(',') for f in [
     fixtures = work / 'fixtures'
     fixtures.mkdir()
     cases = []
+    if 'libav' in features.split(','):
+        cases.append(('vp9', 'libvpx-vp9', 'yuv420p'))
     if 'libav' in features.split(',') and 'applemedia' not in features.split(','):
         cases += [('hevc-main', 'libx265', 'yuv420p'), ('hevc-main10', 'libx265', 'yuv420p10le')]
     if 'av1' in features.split(','):
@@ -72,7 +74,8 @@ if 'playback' in features.split(',') and any(f in features.split(',') for f in [
             command += ['-x265-params', 'log-level=error:pools=1:bframes=3']
         else:
             command += ['-cpu-used', '8']
-        subprocess.run(command + [str(fixtures / (name + '.mp4'))], check=True, timeout=120)
+        extension = '.mkv' if codec == 'libvpx-vp9' else '.mp4'
+        subprocess.run(command + [str(fixtures / (name + extension))], check=True, timeout=120)
     env['GSTREAMER_SRC_TEST_FIXTURES'] = str(fixtures)
 args = ['cargo', 'test', '--manifest-path', str(consumer / 'Cargo.toml')]
 if 'static' in features.split(','):

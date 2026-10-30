@@ -251,7 +251,10 @@ fn main() {
         ),
         ("jpeg", vec!["good", "gst-plugins-good:jpeg"]),
         ("av1", vec!["bad", "gst-plugins-bad:aom"]),
-        ("libav", vec!["libav", "FFmpeg:decoders", "FFmpeg:parsers"]),
+        (
+            "libav",
+            vec!["libav", "FFmpeg:decoders", "FFmpeg:parsers", "FFmpeg:bsfs"],
+        ),
         ("gl", vec!["gst-plugins-base:gl", "gst-plugins-bad:gl"]),
         ("applemedia", vec!["bad", "gst-plugins-bad:applemedia"]),
         (
@@ -271,6 +274,9 @@ fn main() {
         }
     }
     if enabled("libav") {
+        // FFmpeg's VP9 decoder selects this filter. With auto_features disabled,
+        // omitting it silently disables the decoder even when requested.
+        setup.arg("-DFFmpeg:vp9_superframe_split_bsf=enabled");
         for codec in [
             "h264",
             "hevc",
