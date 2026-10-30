@@ -79,7 +79,7 @@ if 'static' in features.split(','):
     env['PKG_CONFIG_ALL_STATIC'] = '1'
     env['PKG_CONFIG_PATH'] += os.pathsep + str(prefix / 'lib/gstreamer-1.0/pkgconfig')
     args += ['--features', 'static']
-result = subprocess.run(args + ['--no-run', '--message-format=json'], env=env, check=True, text=True, stdout=subprocess.PIPE, timeout=900)
+result = subprocess.run(args + ['--no-run', '--message-format=json-render-diagnostics'], env=env, check=True, text=True, stdout=subprocess.PIPE, timeout=900)
 executables = [Path(item['executable']) for line in result.stdout.splitlines() if (item := json.loads(line)).get('executable') and item.get('profile', {}).get('test')]
 assert len(executables) == 1, executables
 runtime = work / 'relocated-runtime'

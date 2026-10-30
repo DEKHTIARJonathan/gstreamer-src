@@ -8,8 +8,9 @@ on:
 env:
   RUSTC_WRAPPER: sccache
   CARGO_INCREMENTAL: '0'
-  SCCACHE_GHA_ENABLED: 'true'
-  SCCACHE_GHA_VERSION: gstreamer-src-v1
+  SCCACHE_GHA_ENABLED: 'false'
+  SCCACHE_DIR: ${{ github.workspace }}/target/compiler-cache
+  SCCACHE_CACHE_SIZE: '1G'
   GSTREAMER_SRC_USE_SCCACHE: '1'
 permissions:
   contents: read
@@ -28,6 +29,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.98.0
         with:
           components: rustfmt
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-pre-commit-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-pre-commit-
       - uses: Mozilla-Actions/sccache-action@v0.0.11
         with:
           version: v0.19.0
@@ -59,6 +66,12 @@ jobs:
         with:
           submodules: recursive
       - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-package-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-package-
       - uses: Mozilla-Actions/sccache-action@v0.0.11
         with:
           version: v0.19.0
@@ -85,6 +98,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache/restore@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-smoke-tests-${{ strategy.job-index }}-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-smoke-tests-${{ strategy.job-index }}-
       - uses: Mozilla-Actions/sccache-action@v0.0.11
         with:
           version: v0.19.0
@@ -99,7 +118,7 @@ jobs:
       - if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1.13.0
       - if: runner.os == 'Windows'
-        run: choco install pkgconfiglite nasm ffmpeg -y
+        run: choco install pkgconfiglite nasm llvm ffmpeg -y
       - name: Install pinned WinFlexBison
         if: runner.os == 'Windows'
         shell: pwsh
@@ -133,7 +152,7 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then
             msvc_prefix=$(cygpath -u "$VCToolsInstallDir")
             export PATH="$msvc_prefix/bin/Hostx64/x64:$PATH"
-            export CC=cl CXX=cl
+            export CC=clang CXX=clang++
           fi
           python scripts/test-package.py
       - name: Record Rust and native compiler cache statistics
@@ -149,6 +168,11 @@ jobs:
           name: sccache-${{ matrix.os }}-${{ matrix.features }}
           path: target/sccache-stats.json
           if-no-files-found: warn
+      - uses: actions/cache/save@v6.1.0
+        if: always() && steps.compiler-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
   publish:
     if: github.ref_type == 'tag'
     needs: smoke-tests
@@ -160,6 +184,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-publish-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-publish-
       - uses: Mozilla-Actions/sccache-action@v0.0.11
         with:
           version: v0.19.0

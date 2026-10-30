@@ -101,8 +101,14 @@ fn main() {
     unpack(&gstreamer_codecs_src::archive(), &source);
     #[cfg(feature = "libav")]
     unpack(&gstreamer_ffmpeg_src::archive(), &source);
+    let c_compiler =
+        env::var("CC").unwrap_or_else(|_| if os == "windows" { "clang" } else { "cc" }.into());
+    let cpp_compiler =
+        env::var("CXX").unwrap_or_else(|_| if os == "windows" { "clang++" } else { "c++" }.into());
     if enabled("av1") {
         run(Command::new("cmake")
+            .env("CC", &c_compiler)
+            .env("CXX", &cpp_compiler)
             .arg("-S")
             .arg(source.join("aom"))
             .arg("-B")
@@ -137,6 +143,7 @@ fn main() {
     }
     let meson = env::var_os("MESON").unwrap_or_else(|| "meson".into());
     let mut setup = Command::new(&meson);
+    setup.env("CC", &c_compiler).env("CXX", &cpp_compiler);
     setup
         .arg("setup")
         .arg(&build)
@@ -167,9 +174,16 @@ fn main() {
         "-Ddefault_library=shared"
     });
     if os == "windows" {
-        // AOM's plugin caps contain preprocessor directives in macro arguments.
-        // Use MSVC's conforming preprocessor for the unmodified upstream source.
-        setup.args(["-Dc_args=/Zc:preprocessor", "-Dcpp_args=/Zc:preprocessor"]);
+        // The GNU-style Clang driver selects upstream's per-file SIMD flags
+        // while retaining the MSVC ABI and accepting AV1's macro directives.
+        setup.env("CC_LD", "lld-link").env("CXX_LD", "lld-link");
+        setup.args([
+            "-Dlibffi:default_library=static",
+            "-Dc_args=-DYY_NO_UNISTD_H -fms-runtime-lib=dll",
+            "-Dcpp_args=-fms-runtime-lib=dll",
+            "-Dc_link_args=--rtlib=compiler-rt -Wl,/nodefaultlib:libcmt",
+            "-Dcpp_link_args=--rtlib=compiler-rt -Wl,/nodefaultlib:libcmt",
+        ]);
     }
     let mut options = std::collections::BTreeMap::new();
     // Upstream couples the external scanner to its core tools option.
@@ -274,11 +288,7 @@ fn main() {
         } else {
             "sccache".into()
         };
-        for (variable, default) in [
-            ("CC", if os == "windows" { "cl" } else { "cc" }),
-            ("CXX", if os == "windows" { "cl" } else { "c++" }),
-        ] {
-            let compiler = env::var(variable).unwrap_or_else(|_| default.into());
+        for (variable, compiler) in [("CC", c_compiler), ("CXX", cpp_compiler)] {
             let compiler = compiler.strip_prefix("sccache ").unwrap_or(&compiler);
             let command = format!("{wrapper} {compiler}");
             setup.env(variable, command);
