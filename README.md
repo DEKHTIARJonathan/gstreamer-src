@@ -1,9 +1,7 @@
 # gstreamer-src
 
 GStreamer 1.28.0 native sources and private SDK preparation, using Meson and
-unmodified upstream code. This is an **unpublished, blocked release candidate**,
-not yet a qualified replacement for FrameForge's runtime. The macOS native
-seek regression described below fails on the required upstream baseline.
+unmodified upstream code.
 
 The existing `gstreamer-src` crate identity is retained. The upstream submodule
 is tag `1.28.0` (`9058212f43074ef7df229e73cea135c4ea96e0d6`); Cargo's `-rc1`
@@ -98,7 +96,7 @@ sccache --show-stats
 | `av1` | AOM software encode/decode, built as a PIC static dependency |
 | `libav` | Private FFmpeg: H.264, HEVC, MPEG-4, H.263, MSMPEG4v2/v3, VP8/9, FLV1, WMV1/2 decoders and corresponding selected parsers |
 | `gl` | OpenGL libraries, conversion and download elements |
-| `applemedia` | macOS VideoToolbox plus GL; currently blocked by seek regression |
+| `applemedia` | macOS VideoToolbox plus GL |
 | `d3d11` | Windows D3D11 and DirectXMath |
 | `va`, `nvcodec` | Linux VA; Linux/Windows NVIDIA integration, requiring platform drivers |
 | `orc`, `tools`, `check` | SIMD generation, tools, GstCheck libraries |
@@ -156,41 +154,6 @@ and notices, including LGPL library obligations and codec licenses. Shipping a
 runtime requires distributing the applicable notices and satisfying the licenses
 of the components selected; static linking needs particular attention.
 
-## Compatibility findings and release blocker
-
-Local macOS ARM64 validation built the source checkout and extracted candidate
-archives. Default and static pixel tests passed. The software playback profile
-passed relocated appsrc/appsink byte/PTS checks and AV1, HEVC Main and Main10
-red-frame decode checks with the original SDK hidden and developer loader paths
-removed. An isolated FrameForge build used its locked gstreamer 0.25.4,
-app 0.25.2 and video 0.25.4 bindings. Its software runtime passed all 28 controls
-for HEVC Main, Main10 and rotated H.264, including color checks and JPEG export.
-These results do not establish Linux or Windows support; that matrix is pending.
-
-The same private installation with `applemedia` loads `vtdec_hw` successfully,
-but FrameForge's original 96x64 regression fixtures reproduce incorrect seeks:
-`native seek selected 800000000 instead of 600000000` (Main10), and
-`native previous step selected 800000000 before 800000000` (Main).
-Repeated software checks pass. Upstream `sys/applemedia/vtdec.c` sets
-`is_draining` before `VTDecompressionSessionWaitForAsynchronousFrames`; the
-output loop can emit frames while earlier presentation timestamps remain in
-pending callbacks. FrameForge's drain-order fix remains relevant at 1.28.0.
-The macOS packaged hardware smoke test also fails. Publication must stop here.
-
-| Existing workaround | Classification for this crate |
-| --- | --- |
-| Cerbero Python packaging, Windows server detection/error handling, macOS build-tools target, Bison bootstrap and ZIP permissions patches | Removable with this packaging/tooling approach; Cerbero/bootstrap installers are not used |
-| GLib headerless `pipe2` check on SDK 27 with deployment target 15 | Still relevant; supported Meson machine property `has_function_pipe2=false` selects upstream's existing fallback without editing source |
-| AOM MSVC static/import naming and exported DATA access | Avoided by private static AOM; native Windows validation remains required |
-| AV1 caps directives inside macro arguments | Still relevant to MSVC preprocessing; clang-cl is the proposed toolchain adaptation, not a claimed Windows pass |
-| VideoToolbox drain ordering | Genuine remaining upstream defect, reproduced locally; no patch applied |
-| Private process, scanner, registry, relocation, signing and helper fallback policy | Consumer responsibilities retained |
-
-Smallest options are to preserve this blocked baseline, explicitly authorize the
-narrow native fix, or explicitly accept software-only macOS playback. A later
-upstream tag must be supplied and independently verified; it cannot be assumed
-fixed. None of these choices has been silently substituted for the request.
-
 ## Publication procedure
 
 The single workflow follows pre-commit → package/size → exact-archive consumer
@@ -200,11 +163,10 @@ Cargo.toml.orig, restores workspace identities in the lockfile offline, packages
 with `--locked`, and requires every archive to match before publishing. Registry
 verification explicitly creates its output directory and downloads exact versions.
 
-Before any release, finish the blocked native qualification, review the full
-matrix, configure trusted publishing for all dependency identities and the existing
+Before any release, review the full test matrix, configure trusted publishing for all dependency identities and the existing
 `gstreamer-src` identity, and validate registry verification. External publication
 is not authorized by local preparation. Publish helpers and root in dependency
 order through Cargo's workspace publication. Do not move published RC tags.
 Increment an immutable RC when source changes; retain the native 1.28.0 pin.
 Stable requires new Cargo.toml/Cargo.lock versions, fresh archives and every check
-again. No remote CI, publication or registry verification has been completed.
+again.

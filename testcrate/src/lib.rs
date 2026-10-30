@@ -99,6 +99,9 @@ fn selected_plugins_and_codecs() {
     if has("av1") {
         names.push("av1dec");
     }
+    if has("applemedia") {
+        names.push("vtdec_hw");
+    }
     for name in names {
         let factory = gst::ElementFactory::find(name).unwrap_or_else(|| panic!("missing {name}"));
         let plugin = factory.plugin().unwrap();

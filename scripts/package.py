@@ -84,6 +84,12 @@ SELECTED = {
 
 def include_gst(path):
     parts = path.parts
+    # Native shared builds install these helpers even with documentation disabled.
+    if parts[:3] == ('subprojects', 'gstreamer', 'docs') and path.name in {
+        'gst-hotdoc-plugins-scanner.c', 'gst-plugins-doc-cache-generator.py',
+        'gst_plugins_cache.json',
+    }:
+        return True
     if path.name == 'gen-changelog.py' and 'scripts' in parts:
         return True
     metadata = path.name in {'meson.build', 'meson.options', 'meson_options.txt'}

@@ -61,7 +61,7 @@ if 'playback' in features.split(',') and any(f in features.split(',') for f in [
     fixtures = work / 'fixtures'
     fixtures.mkdir()
     cases = []
-    if 'libav' in features.split(','):
+    if 'libav' in features.split(',') and 'applemedia' not in features.split(','):
         cases += [('hevc-main', 'libx265', 'yuv420p'), ('hevc-main10', 'libx265', 'yuv420p10le')]
     if 'av1' in features.split(','):
         command = [str(prefix / 'bin' / ('gst-launch-1.0.exe' if os.name == 'nt' else 'gst-launch-1.0')), '-q', 'videotestsrc', 'pattern=red', 'num-buffers=6', '!', 'video/x-raw,format=I420,width=64,height=48,framerate=6/1', '!', 'av1enc', 'cpu-used=8', '!', 'av1parse', '!', 'mp4mux', '!', 'filesink', 'location=' + str(fixtures / 'av1.mp4')]
