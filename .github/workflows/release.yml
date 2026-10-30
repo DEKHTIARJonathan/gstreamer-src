@@ -1,0 +1,233 @@
+---
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [master]
+    tags: ['v*']
+env:
+  RUSTC_WRAPPER: sccache
+  CARGO_INCREMENTAL: '0'
+  SCCACHE_GHA_ENABLED: 'false'
+  SCCACHE_DIR: ${{ github.workspace }}/target/compiler-cache
+  SCCACHE_CACHE_SIZE: '1G'
+  GSTREAMER_SRC_USE_SCCACHE: '1'
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref_type != 'tag' }}
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: true
+      - uses: dtolnay/rust-toolchain@1.98.0
+        with:
+          components: rustfmt
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-pre-commit-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-pre-commit-
+      - uses: Mozilla-Actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+      - run: cargo install --locked cargo-audit
+      - uses: j178/prek-action@v3.1.0
+      - run: make check-version
+      - run: cargo fmt --manifest-path testcrate/Cargo.toml --check
+      - name: Select supported feature combinations
+        id: matrix
+        shell: python
+        run: |
+          import json, os, tomllib
+          from pathlib import Path
+          features = tomllib.loads(Path("Cargo.toml").read_text())["features"]
+          platform = {"ubuntu-latest": ["va", "nvcodec"], "macos-latest": ["applemedia"], "windows-latest": ["d3d11", "nvcodec"]}
+          software = sorted(set(features) - {"default", "static", "applemedia", "d3d11", "va", "nvcodec"})
+          cases = []
+          for runner, native in platform.items():
+              for selected in [features["default"], features["default"] + ["static"], software, software + native]:
+                  assert all(name in features for name in selected)
+                  cases.append({"os": runner, "features": ",".join(selected)})
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write("matrix=" + json.dumps({"include": cases}) + "\n")
+  package:
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          submodules: recursive
+      - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-package-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-package-
+      - uses: Mozilla-Actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+      - name: Fetch the pinned upstream release tag
+        shell: python
+        run: |
+          import subprocess, tomllib
+          from pathlib import Path
+          native = tomllib.loads(Path("Cargo.toml").read_text())["package"]["version"].split("-")[0]
+          subprocess.run(["git", "-C", "gstreamer", "fetch", "--depth=1", "origin", f"refs/tags/{native}:refs/tags/{native}"], check=True)
+      - run: make package
+      - uses: actions/upload-artifact@v7.0.2
+        with:
+          name: candidate
+          path: dist/*.crate
+          if-no-files-found: error
+  smoke-tests:
+    needs: [pre-commit, package]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.pre-commit.outputs.matrix) }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache/restore@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-smoke-tests-${{ strategy.job-index }}-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-smoke-tests-${{ strategy.job-index }}-
+      - uses: Mozilla-Actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: python -m pip install meson==1.9.0 ninja
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y bison flex pkg-config nasm cmake libgl-dev libegl-dev libdrm-dev libva-dev libx11-dev ffmpeg patchelf
+      - if: runner.os == 'macOS'
+        run: brew install bison flex pkg-config nasm ffmpeg
+      - if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1.13.0
+      - if: runner.os == 'Windows'
+        run: choco install pkgconfiglite nasm llvm ffmpeg -y
+      - name: Install pinned WinFlexBison
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:RUNNER_TEMP 'win_flex_bison-2.5.25.zip'
+          Invoke-WebRequest 'https://github.com/lexxmark/winflexbison/releases/download/v2.5.25/win_flex_bison-2.5.25.zip' -OutFile $archive -MaximumRetryCount 3
+          if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne '8d324b62be33604b2c45ad1dd34ab93d722534448f55a16ca7292de32b6ac135') {
+            throw 'WinFlexBison checksum mismatch'
+          }
+          $destination = Join-Path $env:RUNNER_TEMP 'winflexbison'
+          Expand-Archive $archive -DestinationPath $destination
+          Add-Content $env:GITHUB_PATH $destination
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: candidate
+          path: dist
+      - name: Test extracted source packages
+        shell: bash
+        env:
+          FEATURES: ${{ matrix.features }}
+          GSTREAMER_SRC_TEST_WORK_DIR: ${{ github.workspace }}/target/packaged-smoke
+        run: |
+          if [ "$RUNNER_OS" = macOS ]; then
+            bison_prefix=$(brew --prefix bison)
+            flex_prefix=$(brew --prefix flex)
+            export PATH="$bison_prefix/bin:$flex_prefix/bin:$PATH"
+            SDKROOT=$(xcrun --sdk macosx --show-sdk-path)
+            export SDKROOT
+            export MACOSX_DEPLOYMENT_TARGET=15.0
+          fi
+          if [ "$RUNNER_OS" = Windows ]; then
+            msvc_prefix=$(cygpath -u "$VCToolsInstallDir")
+            export PATH="$msvc_prefix/bin/Hostx64/x64:$PATH"
+            export CC=clang-cl CXX=clang-cl
+          fi
+          python scripts/test-package.py
+      - name: Record Rust and native compiler cache statistics
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p target
+          sccache --show-stats
+          sccache --show-stats --stats-format=json > target/sccache-stats.json
+      - uses: actions/upload-artifact@v7.0.2
+        if: always()
+        with:
+          name: sccache-${{ matrix.os }}-${{ matrix.features }}
+          path: target/sccache-stats.json
+          if-no-files-found: warn
+      - uses: actions/cache/save@v6.1.0
+        if: always() && steps.compiler-cache.outputs.cache-hit != 'true'
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+  publish:
+    if: github.ref_type == 'tag'
+    needs: smoke-tests
+    runs-on: ubuntu-latest
+    environment: crates-io
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: dtolnay/rust-toolchain@1.98.0
+      - uses: actions/cache@v6.1.0
+        id: compiler-cache
+        with:
+          path: ${{ env.SCCACHE_DIR }}
+          key: sccache-v2-${{ runner.os }}-${{ runner.arch }}-publish-${{ github.sha }}
+          restore-keys: sccache-v2-${{ runner.os }}-${{ runner.arch }}-publish-
+      - uses: Mozilla-Actions/sccache-action@v0.0.11
+        with:
+          version: v0.19.0
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: candidate
+          path: dist
+      - name: Validate tag and reconstruct exact archives
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["package"]["version"])')
+          test "$GITHUB_REF_NAME" = "v$version"
+          cargo fetch --locked
+          python3 scripts/repackage.py
+      - uses: rust-lang/crates-io-auth-action@v1.0.6
+        id: auth
+      - name: Publish tested packages in dependency order
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+        run: cargo publish --manifest-path target/publication/Cargo.toml --workspace --locked --no-verify
+  verify:
+    if: github.ref_type == 'tag'
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/download-artifact@v8.0.2
+        with:
+          name: candidate
+          path: dist
+      - name: Compare exact registry archives
+        shell: bash
+        run: |
+          mkdir -p target/registry
+          for archive in dist/*.crate; do
+            filename=$(basename "$archive")
+            package=$(python3 -c 'import sys,tarfile,tomllib; t=tarfile.open(sys.argv[1]); m=next(m for m in t if m.name.endswith("/Cargo.toml")); print(tomllib.loads(t.extractfile(m).read().decode())["package"]["name"])' "$archive")
+            curl --fail --location --retry 12 --retry-all-errors --retry-delay 10 \
+              "https://static.crates.io/crates/$package/$filename" \
+              --output "target/registry/$filename"
+            cmp "$archive" "target/registry/$filename"
+          done

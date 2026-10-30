@@ -1,0 +1,38 @@
+[package]
+name = "gstreamer-src"
+version = "1.28.0-rc1"
+edition = "2021"
+license = "LGPL-2.1-or-later"
+description = "Pinned GStreamer sources and private native SDK preparation"
+repository = "https://github.com/DEKHTIARJonathan/gstreamer-src"
+links = "gstreamer_src"
+include = ["src", "build.rs", "native.tar.xz", "README.md", "LICENSE.md", "LICENSE-LLVM.txt"]
+
+[features]
+default = ["app", "video"]
+app = []
+video = []
+playback = ["app", "video"]
+jpeg = ["dep:gstreamer-codecs-src"]
+av1 = ["dep:gstreamer-codecs-src"]
+libav = ["dep:gstreamer-ffmpeg-src"]
+gl = ["video"]
+applemedia = ["gl"]
+d3d11 = ["video"]
+va = ["video"]
+nvcodec = ["video"]
+orc = []
+tools = []
+check = []
+static = []
+
+[build-dependencies]
+gstreamer-native-src = { path = "sources/native", version = "=1.28.0-rc1" }
+gstreamer-codecs-src = { path = "sources/codecs", version = "=1.28.0-rc1", optional = true }
+gstreamer-ffmpeg-src = { path = "sources/ffmpeg", version = "=1.28.0-rc1", optional = true }
+lzma-rust2 = { version = "0.24", default-features = false, features = ["std", "xz"] }
+tar = { version = "0.4", default-features = false }
+
+[workspace]
+members = ["sources/native", "sources/codecs", "sources/ffmpeg"]
+exclude = ["testcrate", "target", "gstreamer"]

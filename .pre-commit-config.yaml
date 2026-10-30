@@ -1,0 +1,37 @@
+---
+exclude: '^gstreamer/'
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+      - id: actionlint
+  - repo: https://github.com/EmbarkStudios/cargo-deny
+    rev: 0.20.2
+    hooks:
+      - id: cargo-deny
+        args: [--all-features, check]
+  - repo: https://github.com/bnjbvr/cargo-machete
+    rev: v0.9.2
+    hooks:
+      - id: cargo-machete
+        args: [./Cargo.toml, ./testcrate/Cargo.toml]
+  - repo: local
+    hooks:
+      - id: rustfmt
+        name: Rust formatting
+        entry: cargo fmt --all --check
+        language: system
+        pass_filenames: false
+      - id: audit
+        name: Rust dependency audit
+        entry: cargo audit
+        language: system
+        pass_filenames: false

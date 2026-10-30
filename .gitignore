@@ -1,0 +1,5 @@
+/target/
+/dist/
+/testcrate/target/
+/testcrate/Cargo.lock
+__pycache__/
