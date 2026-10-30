@@ -310,7 +310,7 @@ fn main() {
             fs::write(&native, &compilers).unwrap();
             setup.arg("--native-file").arg(native);
         }
-        fs::write(&machine, format!("{compilers}pkg-config = 'pkg-config'\nar = 'ar'\nstrip = 'strip'\n[host_machine]\nsystem = 'darwin'\ncpu_family = '{arch}'\ncpu = '{arch}'\nendian = 'little'\n[properties]\nneeds_exe_wrapper = false\nhas_function_pipe2 = false\n[built-in options]\nc_args = ['-mmacosx-version-min=15.0']\nc_link_args = ['-mmacosx-version-min=15.0']\ncpp_args = ['-mmacosx-version-min=15.0']\ncpp_link_args = ['-mmacosx-version-min=15.0']\nobjc_args = ['-mmacosx-version-min=15.0']\nobjc_link_args = ['-mmacosx-version-min=15.0']\nobjcpp_args = ['-mmacosx-version-min=15.0']\nobjcpp_link_args = ['-mmacosx-version-min=15.0']\n")).unwrap();
+        fs::write(&machine, format!("{compilers}pkg-config = 'pkg-config'\nar = 'ar'\nstrip = 'strip'\n[host_machine]\nsystem = 'darwin'\nsubsystem = 'macos'\ncpu_family = '{arch}'\ncpu = '{arch}'\nendian = 'little'\n[properties]\nneeds_exe_wrapper = false\nhas_function_pipe2 = false\n[built-in options]\nc_args = ['-mmacosx-version-min=15.0']\nc_link_args = ['-mmacosx-version-min=15.0']\ncpp_args = ['-mmacosx-version-min=15.0']\ncpp_link_args = ['-mmacosx-version-min=15.0']\nobjc_args = ['-mmacosx-version-min=15.0']\nobjc_link_args = ['-mmacosx-version-min=15.0']\nobjcpp_args = ['-mmacosx-version-min=15.0']\nobjcpp_link_args = ['-mmacosx-version-min=15.0']\n")).unwrap();
         setup.arg("--cross-file").arg(machine);
     } else if use_sccache {
         // Leave CC/CXX unwrapped for CMake; wrap only Meson's compiler commands.

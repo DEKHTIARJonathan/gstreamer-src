@@ -50,13 +50,21 @@ def wrap(name):
     config.read(WORK / 'gstreamer/subprojects' / f'{name}.wrap')
     if 'wrap-file' in config:
         spec = config['wrap-file']
+        # Existing source directories bypass Meson's upstream diff_files. Keep
+        # pristine inputs in its cache so Meson applies those patches in OUT_DIR.
+        destination = WORK / 'gstreamer/subprojects'
+        if spec.get('diff_files'):
+            destination /= 'packagecache'
         path = fetch(spec['source_url'], spec['source_hash'])
-        unpack(path, WORK / 'gstreamer/subprojects')
+        unpack(path, destination)
         if 'patch_url' in spec:
             patch = fetch(spec['patch_url'], spec['patch_hash'])
-            with zipfile.ZipFile(patch) as archive:
-                archive.extractall(WORK / 'gstreamer/subprojects')
-        return WORK / 'gstreamer/subprojects' / spec['directory']
+            if spec.get('diff_files'):
+                shutil.copy2(patch, destination / spec['patch_filename'])
+            else:
+                with zipfile.ZipFile(patch) as archive:
+                    archive.extractall(destination)
+        return destination / spec['directory']
     spec = config['wrap-git']
     destination = WORK / 'gstreamer/subprojects' / spec.get('directory', name)
     destination.mkdir(parents=True, exist_ok=True)
@@ -156,6 +164,9 @@ def main():
     if not gvdb.exists():
         run('git', 'clone', '--quiet', spec['url'], str(gvdb))
         run('git', '-C', str(gvdb), 'checkout', '--quiet', '--detach', spec['revision'])
+    cache = WORK / 'gstreamer/subprojects/packagecache'
+    if cache.exists():
+        support = [p for p in support if p.parent != cache] + [cache]
     compress(STAGE / 'sources/native/native.tar.xz', [(p, 'subprojects/' + p.name, lambda _: True) for p in support])
     jpeg = wrap('libjpeg-turbo')
     aom = fetch('https://storage.googleapis.com/aom-releases/libaom-3.13.3.tar.gz', '446a4ae9741cb8f3eeb98c949d25f91b48cb2b8569cae975c4b737392e9024fc')

@@ -1,6 +1,6 @@
 [package]
 name = "gstreamer-native-src"
-version = "1.28.0-rc2"
+version = "1.28.7-rc1"
 edition = "2021"
 license = "LGPL-2.1-or-later"
 description = "Pinned native source payload for gstreamer-src"
