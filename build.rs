@@ -102,9 +102,31 @@ fn main() {
     #[cfg(feature = "libav")]
     unpack(&gstreamer_ffmpeg_src::archive(), &source);
     let c_compiler =
-        env::var("CC").unwrap_or_else(|_| if os == "windows" { "clang" } else { "cc" }.into());
+        env::var("CC").unwrap_or_else(|_| if os == "windows" { "clang-cl" } else { "cc" }.into());
     let cpp_compiler =
-        env::var("CXX").unwrap_or_else(|_| if os == "windows" { "clang++" } else { "c++" }.into());
+        env::var("CXX").unwrap_or_else(|_| if os == "windows" { "clang-cl" } else { "c++" }.into());
+    let compiler_runtime = if os == "windows" {
+        let output = Command::new("clang-cl")
+            .args(["--rtlib=compiler-rt", "-print-libgcc-file-name"])
+            .output()
+            .expect("clang-cl must be installed with the MSVC SDK and compiler-rt");
+        assert!(output.status.success(), "cannot locate compiler-rt");
+        let runtime = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
+        assert!(
+            runtime.is_file(),
+            "missing LLVM builtins: {}",
+            runtime.display()
+        );
+        fs::create_dir_all(prefix.join("lib")).unwrap();
+        let installed = prefix.join("lib").join(runtime.file_name().unwrap());
+        fs::copy(&runtime, &installed).unwrap();
+        let notices = prefix.join("share/licenses/compiler-rt");
+        fs::create_dir_all(&notices).unwrap();
+        fs::copy(root.join("LICENSE-LLVM.txt"), notices.join("LICENSE.txt")).unwrap();
+        Some(installed)
+    } else {
+        None
+    };
     if enabled("av1") {
         run(Command::new("cmake")
             .env("CC", &c_compiler)
@@ -174,16 +196,25 @@ fn main() {
         "-Ddefault_library=shared"
     });
     if os == "windows" {
-        // The GNU-style Clang driver selects upstream's per-file SIMD flags
-        // while retaining the MSVC ABI and accepting AV1's macro directives.
-        setup.env("CC_LD", "lld-link").env("CXX_LD", "lld-link");
+        // Reject ignored flags during capability checks: clang-cl ignores
+        // /arch:SSE2 on x64, which otherwise incorrectly enables SSE4.1 code.
         setup.args([
             "-Dlibffi:default_library=static",
-            "-Dc_args=-DYY_NO_UNISTD_H -fms-runtime-lib=dll",
-            "-Dcpp_args=-fms-runtime-lib=dll",
-            "-Dc_link_args=--rtlib=compiler-rt -Wl,/nodefaultlib:libcmt",
-            "-Dcpp_link_args=--rtlib=compiler-rt -Wl,/nodefaultlib:libcmt",
+            "-Dc_args=-DYY_NO_UNISTD_H -Werror=unused-command-line-argument",
+            "-Dcpp_args=-Werror=unused-command-line-argument",
         ]);
+        // Meson invokes lld-link directly, bypassing Clang's runtime selection.
+        let runtime = compiler_runtime
+            .as_ref()
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/");
+        for language in ["c", "cpp"] {
+            setup.arg(format!(
+                "-D{language}_link_args=['{}']",
+                runtime.replace('\'', "\\'")
+            ));
+        }
     }
     let mut options = std::collections::BTreeMap::new();
     // Upstream couples the external scanner to its core tools option.
@@ -298,6 +329,22 @@ fn main() {
     run(&mut setup);
     run(Command::new(&meson).arg("compile").arg("-C").arg(&build));
     run(Command::new(&meson).arg("install").arg("-C").arg(&build));
+    if let Some(runtime) = compiler_runtime {
+        // Keep the compiler runtime discoverable when linking the static SDK.
+        let pc = prefix.join("lib/pkgconfig/gstreamer-1.0.pc");
+        let mut contents = fs::read_to_string(&pc).unwrap();
+        let library = runtime.file_stem().unwrap().to_str().unwrap();
+        let argument = format!(" -l{library}");
+        if let Some(start) = contents.find("Libs.private:") {
+            let end = contents[start..]
+                .find('\n')
+                .map_or(contents.len(), |i| start + i);
+            contents.insert_str(end, &argument);
+        } else {
+            contents.push_str(&format!("\nLibs.private:{argument}\n"));
+        }
+        fs::write(pc, contents).unwrap();
+    }
     println!("cargo:rustc-env=GSTREAMER_SRC_PREFIX={}", prefix.display());
     println!("cargo:root={}", prefix.display());
     println!("cargo:pkgconfig={}", prefix.join("lib/pkgconfig").display());

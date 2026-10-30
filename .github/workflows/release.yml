@@ -152,7 +152,7 @@ jobs:
           if [ "$RUNNER_OS" = Windows ]; then
             msvc_prefix=$(cygpath -u "$VCToolsInstallDir")
             export PATH="$msvc_prefix/bin/Hostx64/x64:$PATH"
-            export CC=clang CXX=clang++
+            export CC=clang-cl CXX=clang-cl
           fi
           python scripts/test-package.py
       - name: Record Rust and native compiler cache statistics

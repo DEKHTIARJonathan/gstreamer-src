@@ -6,7 +6,7 @@ license = "LGPL-2.1-or-later"
 description = "Pinned GStreamer sources and private native SDK preparation"
 repository = "https://github.com/DEKHTIARJonathan/gstreamer-src"
 links = "gstreamer_src"
-include = ["src", "build.rs", "native.tar.xz", "README.md", "LICENSE.md"]
+include = ["src", "build.rs", "native.tar.xz", "README.md", "LICENSE.md", "LICENSE-LLVM.txt"]
 
 [features]
 default = ["app", "video"]

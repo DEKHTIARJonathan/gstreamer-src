@@ -139,7 +139,7 @@ def main():
     if STAGE.exists():
         shutil.rmtree(STAGE)
     STAGE.mkdir(parents=True)
-    for name in ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'LICENSE.md']:
+    for name in ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'LICENSE.md', 'LICENSE-LLVM.txt']:
         shutil.copy2(ROOT / name, STAGE / name)
     shutil.copytree(ROOT / 'src', STAGE / 'src')
     for name in ['native', 'codecs', 'ffmpeg']:
