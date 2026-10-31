@@ -80,7 +80,7 @@ jobs:
         run: |
           import subprocess, tomllib
           from pathlib import Path
-          native = tomllib.loads(Path("Cargo.toml").read_text())["package"]["version"].split("-")[0]
+          native = tomllib.loads(Path("Cargo.toml").read_text())["workspace"]["package"]["version"].split("-")[0]
           subprocess.run(["git", "-C", "gstreamer", "fetch", "--depth=1", "origin", f"refs/tags/{native}:refs/tags/{native}"], check=True)
       - run: make package
       - uses: actions/upload-artifact@v7.0.2
@@ -199,7 +199,7 @@ jobs:
           path: dist
       - name: Validate tag and reconstruct exact archives
         run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["package"]["version"])')
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml","rb"))["workspace"]["package"]["version"])')
           test "$GITHUB_REF_NAME" = "v$version"
           cargo fetch --locked
           python3 scripts/repackage.py

@@ -7,7 +7,7 @@ import tarfile
 import tomllib
 
 root = Path(__file__).resolve().parents[1]
-version = tomllib.loads((root / 'Cargo.toml').read_text())['package']['version']
+version = tomllib.loads((root / 'Cargo.toml').read_text())['workspace']['package']['version']
 stage = root / 'target/publication'
 if stage.exists():
     shutil.rmtree(stage)

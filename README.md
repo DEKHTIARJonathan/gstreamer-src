@@ -6,8 +6,10 @@ unmodified upstream code.
 The existing `gstreamer-src` crate identity is retained. The upstream submodule
 is tag `1.28.7` (`070125524a8422e29d3b69a372ed4f62fd343ffa`); Cargo's `-rcN`
 suffix describes packaging, not the native ABI. `make check-version` compares
-Cargo.toml with upstream's Meson version. The upstream media submodule remains
-at its upstream gitlink but is not needed in the published build payload.
+`workspace.package.version` in Cargo.toml with upstream's Meson version.
+The four published crates inherit their common metadata from that workspace table.
+The upstream media submodule remains at its upstream gitlink but is not needed in
+the published build payload.
 
 The complete measured source scope exceeded 20 MB compressed. With the approved
 split, three dependency crates carry native support libraries, AOM/JPEG, and
@@ -19,8 +21,10 @@ by consumer builds.
 
 Prerequisites: Rust 1.98, Python 3.11+, Meson 1.9, Ninja, pkg-config, C/C++
 compiler, Flex/Bison, Git or patch for upstream wrap patches, and CMake for AOM.
-x86 assembly requires NASM. On macOS,
-put Homebrew Bison >=2.4 before Apple's system Bison on PATH. macOS builds use
+x86 assembly requires NASM. On macOS, install Bison and Flex with
+`brew install bison flex`; Make targets automatically put their Homebrew paths
+first. For direct Cargo builds, put Bison >=2.4 before Apple's system Bison on
+PATH. macOS builds use
 the platform compiler and deployment target 15.0. Windows requires LLVM's
 `clang-cl` and compiler-rt with the MSVC SDK and CRT. Linux graphics features
 require system GL/EGL, libdrm, libva and X11 development libraries and appropriate

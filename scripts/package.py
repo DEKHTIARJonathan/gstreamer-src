@@ -17,7 +17,7 @@ UPSTREAM = ROOT / 'gstreamer'
 STAGE = ROOT / 'target/package-src'
 CACHE = ROOT / 'target/downloads'
 WORK = ROOT / 'target/native-sources'
-VERSION = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
+VERSION = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
 NATIVE = VERSION.split('-')[0]
 
 
@@ -129,8 +129,6 @@ def compress(destination, trees):
 
 
 def main():
-    for helper in (ROOT / 'sources').glob('*/Cargo.toml'):
-        assert tomllib.loads(helper.read_text())['package']['version'] == VERSION, helper
     run('git', '-C', str(UPSTREAM), 'diff', '--exit-code')
     run('git', '-C', str(UPSTREAM), 'diff', '--cached', '--exit-code')
     pins = subprocess.check_output(['git', '-C', str(UPSTREAM), 'submodule', 'status', '--recursive'], text=True)

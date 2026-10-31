@@ -11,7 +11,7 @@ import tempfile
 import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['package']['version']
+version = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['version']
 if directory := os.environ.get('GSTREAMER_SRC_TEST_WORK_DIR'):
     # Stable paths improve cache reuse across CI jobs. Never reuse prior outputs.
     work = Path(directory).resolve()

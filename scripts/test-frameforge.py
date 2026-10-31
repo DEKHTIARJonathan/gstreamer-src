@@ -16,7 +16,7 @@ parser.add_argument('--reference', type=Path, required=True)
 parser.add_argument('--sdk', type=Path, required=True)
 parser.add_argument('--hardware', action='store_true', help='require actual hardware decoding')
 args = parser.parse_args()
-native_version = tomllib.loads((Path(__file__).resolve().parents[1] / 'Cargo.toml').read_text())['package']['version'].split('-')[0]
+native_version = tomllib.loads((Path(__file__).resolve().parents[1] / 'Cargo.toml').read_text())['workspace']['package']['version'].split('-')[0]
 work = Path(tempfile.mkdtemp(prefix='gstreamer-frameforge-'))
 print(f'Isolated FrameForge check: {work}', flush=True)
 # Read tracked application sources and small synthetic fixtures, never SDK caches.
