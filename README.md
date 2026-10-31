@@ -1,10 +1,10 @@
 # gstreamer-src
 
-GStreamer 1.28.2 native sources and private SDK preparation, using Meson and
+GStreamer 1.28.3 native sources and private SDK preparation, using Meson and
 unmodified upstream code.
 
 The existing `gstreamer-src` crate identity is retained. The upstream submodule
-is tag `1.28.2` (`43421c2a5b8ac5cceb52b11749df40301e1de5c0`); Cargo's `-rcN`
+is tag `1.28.3` (`62d8936e70b11a2e21ea3c68b7672b675e142945`); Cargo's `-rcN`
 suffix describes packaging, not the native ABI. `make check-version` compares
 `workspace.package.version` in Cargo.toml with upstream's Meson version.
 The four published crates inherit their common metadata from that workspace table.
@@ -125,7 +125,7 @@ GStreamer plugin or every FFmpeg codec. Unselected network, DVD, GUI toolkits,
 Vulkan and external GPL codec implementations are not advertised.
 
 The support payload preserves upstream wraps: GLib 2.86.3, libffi
-meson-3.2.9999.4, PCRE2 10.47, zlib 1.3.1, Orc 0.4.42, proxy-libintl, GL headers
+meson-3.2.9999.5, PCRE2 10.47, zlib 1.3.1, Orc 0.4.42, proxy-libintl, GL headers
 and DirectXMath. JPEG is libjpeg-turbo 3.1.3. Archive hashes and build overlays
 come from the wraps. The PCRE2 build overlay comes from its checksum-pinned
 wrap archive. Releases with upstream `diff_files` keep pristine dependency
