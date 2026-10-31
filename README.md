@@ -1,10 +1,10 @@
 # gstreamer-src
 
-GStreamer 1.28.7 native sources and private SDK preparation, using Meson and
+GStreamer 1.28.8 native sources and private SDK preparation, using Meson and
 unmodified upstream code.
 
 The existing `gstreamer-src` crate identity is retained. The upstream submodule
-is tag `1.28.7` (`070125524a8422e29d3b69a372ed4f62fd343ffa`); Cargo's `-rcN`
+is tag `1.28.8` (`1b2a95a1b72787cda146b46df9605b168e5b683b`); Cargo's `-rcN`
 suffix describes packaging, not the native ABI. `make check-version` compares
 `workspace.package.version` in Cargo.toml with upstream's Meson version.
 The four published crates inherit their common metadata from that workspace table.

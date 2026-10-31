@@ -27,9 +27,9 @@ check = []
 static = []
 
 [build-dependencies]
-gstreamer-native-src = { path = "sources/native", version = "=1.28.7" }
-gstreamer-codecs-src = { path = "sources/codecs", version = "=1.28.7", optional = true }
-gstreamer-ffmpeg-src = { path = "sources/ffmpeg", version = "=1.28.7", optional = true }
+gstreamer-native-src = { path = "sources/native", version = "=1.28.8" }
+gstreamer-codecs-src = { path = "sources/codecs", version = "=1.28.8", optional = true }
+gstreamer-ffmpeg-src = { path = "sources/ffmpeg", version = "=1.28.8", optional = true }
 lzma-rust2 = { version = "0.24", default-features = false, features = ["std", "xz"] }
 tar = { version = "0.4", default-features = false }
 
@@ -38,7 +38,7 @@ members = ["sources/native", "sources/codecs", "sources/ffmpeg"]
 exclude = ["testcrate", "target", "gstreamer"]
 
 [workspace.package]
-version = "1.28.7"
+version = "1.28.8"
 edition = "2021"
 license = "LGPL-2.1-or-later"
 repository = "https://github.com/DEKHTIARJonathan/gstreamer-src"
