@@ -64,19 +64,19 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-codecs-src"
-version = "1.28.7-rc1"
+version = "1.28.0"
 
 [[package]]
 name = "gstreamer-ffmpeg-src"
-version = "1.28.7-rc1"
+version = "1.28.0"
 
 [[package]]
 name = "gstreamer-native-src"
-version = "1.28.7-rc1"
+version = "1.28.0"
 
 [[package]]
 name = "gstreamer-src"
-version = "1.28.7-rc1"
+version = "1.28.0"
 dependencies = [
  "gstreamer-codecs-src",
  "gstreamer-ffmpeg-src",

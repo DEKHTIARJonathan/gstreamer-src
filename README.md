@@ -1,10 +1,10 @@
 # gstreamer-src
 
-GStreamer 1.28.7 native sources and private SDK preparation, using Meson and
+GStreamer 1.28.0 native sources and private SDK preparation, using Meson and
 unmodified upstream code.
 
 The existing `gstreamer-src` crate identity is retained. The upstream submodule
-is tag `1.28.7` (`070125524a8422e29d3b69a372ed4f62fd343ffa`); Cargo's `-rcN`
+is tag `1.28.0` (`9058212f43074ef7df229e73cea135c4ea96e0d6`); Cargo's `-rcN`
 suffix describes packaging, not the native ABI. `make check-version` compares
 `workspace.package.version` in Cargo.toml with upstream's Meson version.
 The four published crates inherit their common metadata from that workspace table.
@@ -125,12 +125,12 @@ GStreamer plugin or every FFmpeg codec. Unselected network, DVD, GUI toolkits,
 Vulkan and external GPL codec implementations are not advertised.
 
 The support payload preserves upstream wraps: GLib 2.86.3, libffi
-meson-3.2.9999.5, PCRE2 10.47, zlib 1.3.1, Orc 0.4.42, proxy-libintl, GL headers
+meson-3.2.9999.4, PCRE2 10.47, zlib 1.3.1, Orc 0.4.42, proxy-libintl, GL headers
 and DirectXMath. JPEG is libjpeg-turbo 3.1.3. Archive hashes and build overlays
-come from the wraps. Pristine GLib and PCRE2 sources are packaged in Meson's
-source cache, alongside the checksum-pinned PCRE2 overlay archive. Meson applies
-the upstream wrap overlays and `diff_files` under OUT_DIR without downloading
-inputs. No additional source patches are introduced. GLib's release
+come from the wraps. The PCRE2 build overlay comes from its checksum-pinned
+wrap archive. Releases with upstream `diff_files` keep pristine dependency
+sources in Meson's source cache so Meson applies those patches under OUT_DIR
+without downloading inputs. No additional source patches are introduced. GLib's release
 archive already contains its required GVDB sources. Upstream's FFmpeg wrap names
 `meson-7.1.1`, a branch; packaging rejects movement from reviewed commit
 `cde7209117ec2be9da087b9e5f96d48450fdecd2`. AOM 3.13.3 has no upstream monorepo
@@ -185,6 +185,6 @@ Before any release, review the full test matrix, configure trusted publishing fo
 `gstreamer-src` identity, and validate registry verification. External publication
 is not authorized by local preparation. Publish helpers and root in dependency
 order through Cargo's workspace publication. Do not move published RC tags.
-Increment an immutable RC when source changes; retain the native 1.28.7 pin.
+Increment an immutable RC when source changes; retain its native release pin.
 Stable requires new Cargo.toml/Cargo.lock versions, fresh archives and every check
 again.
